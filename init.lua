@@ -42,6 +42,13 @@ P.S. You can delete this when you're done too. It's your config now :)
 --  NOTE: Must happen before plugins are required (otherwise wrong leader will be used)
 vim.g.mapleader = ' '
 vim.g.maplocalleader = ' '
+vim.opt.smartindent = true
+vim.opt.autoindent = true
+vim.opt.shiftwidth = 2 
+vim.opt.wrap = false 
+
+-- sum bindings, until I will force myself to do a modular approach >_<
+vim.keymap.set("n", "<leader>pv", vim.cmd.Ex, {desc = "Go Explore"})
 
 -- Install package manager
 --    https://github.com/folke/lazy.nvim
@@ -73,7 +80,12 @@ require('lazy').setup({
 
   -- Detect tabstop and shiftwidth automatically
   'tpope/vim-sleuth',
+  'tpope/vim-surround',
+  -- HARPOOOON 
+  'theprimeagen/harpoon',
 
+  -- TMOOOOOX
+  'christoomey/vim-tmux-navigator',
   -- NOTE: This is where your plugins related to LSP can be installed.
   --  The configuration is done below. Search for lspconfig to find it below.
   {
@@ -108,6 +120,20 @@ require('lazy').setup({
       'rafamadriz/friendly-snippets',
     },
   },
+ {
+    "ray-x/go.nvim",
+    dependencies = {  -- optional packages
+      "ray-x/guihua.lua",
+      "neovim/nvim-lspconfig",
+      "nvim-treesitter/nvim-treesitter",
+    },
+    config = function()
+      require("go").setup()
+    end,
+    event = {"CmdlineEnter"},
+    ft = {"go", 'gomod'},
+    build = ':lua require("go.install").update_all_sync()' -- if you need to install/update all binaries
+  },
 
   -- Useful plugin to show you pending keybinds.
   { 'folke/which-key.nvim', opts = {} },
@@ -141,16 +167,63 @@ require('lazy').setup({
       end,
     },
   },
-
+  -- {
+  --   'yorik1984/newpaper.nvim',
+  --   priority = 1000,
+  --   config = true  
+  -- },
   {
-    -- Theme inspired by Atom
-    'rose-pine/neovim',
-    as = 'rose-pine',
-    priority = 1000,
-    config = function()
-      vim.cmd.colorscheme 'rose-pine'
-    end,
+    "f-person/auto-dark-mode.nvim"
   },
+  {
+    "rktjmp/lush.nvim",
+  }, 
+  {
+    "mcchrish/zenbones.nvim",
+    as = 'zenbones',
+    priority = 1000,
+  },
+   {
+     'Verf/deepwhite.nvim',
+     priority = 1000,
+     lazy = false,
+   },
+  -- { 
+  --   'catppuccin/nvim',
+  --   name = 'catppuccin',
+  --   priority=1000,
+  --   config =
+  --     function() vim.cmd.colorscheme 'catppuccin-latte' end, 
+  -- },
+
+--  {
+--    'p00f/alabaster.nvim',
+--    name = 'alabaster',
+--    priority = 1000,
+--    lazy = false,
+--    config = function()
+--      vim.cmd.colorscheme 'alabaster'
+--    end,
+--  },
+
+  -- 'chriskempson/base16-vim',
+  -- {
+  --   'Verf/deepwhite.nvim',
+  --   priority = 1000,
+  --   lazy = false,
+  --   config = function()
+  --     vim.cmd.colorscheme 'deepwhite'
+  --   end,
+  -- },
+  --  {
+  --    -- Theme inspired by Atom
+  --    'rose-pine/neovim',
+  --    as = 'rose-pine',
+  --    priority = 1000,
+  --    config = function()
+  --      vim.cmd.colorscheme 'rose-pine'
+  --    end,
+  --  },
 
   {
     -- Set lualine as statusline
@@ -159,7 +232,7 @@ require('lazy').setup({
     opts = {
       options = {
         icons_enabled = false,
-        theme = 'onedark',
+        theme = 'deepwhite',
         component_separators = '|',
         section_separators = '',
       },
@@ -213,7 +286,10 @@ require('lazy').setup({
   -- NOTE: Next Step on Your Neovim Journey: Add/Configure additional "plugins" for kickstart
   --       These are some example plugins that I've included in the kickstart repository.
   --       Uncomment any of the lines below to enable them.
-  -- require 'kickstart.plugins.autoformat',
+  require 'custom.plugins.autoformat',
+  require 'custom.plugins.darkmode',
+
+  -- require 'custom.remap'
   -- require 'kickstart.plugins.debug',
 
   -- NOTE: The import below can automatically add your own plugins, configuration, etc from `lua/custom/plugins/*.lua`
@@ -225,9 +301,21 @@ require('lazy').setup({
   -- { import = 'custom.plugins' },
 }, {})
 
+vim.keymap.set('n', '<leader>ha', require('harpoon.mark').add_file)
+vim.keymap.set('n', '<C-e>', require('harpoon.ui').toggle_quick_menu)
+
+vim.keymap.set('n', '<C-1>', function() require('harpoon.ui').nav_file(1) end)
+vim.keymap.set('n', '<C-2>', function() require('harpoon.ui').nav_file(2) end)
+vim.keymap.set('n', '<C-3>', function() require('harpoon.ui').nav_file(3) end)
+vim.keymap.set('n', '<C-4>', function() require('harpoon.ui').nav_file(4) end)
+vim.keymap.set('n', '<C-p>', function() require('harpoon.ui').nav_prev() end)
+vim.keymap.set('n', '<C-n>', function() require('harpoon.ui').nav_next() end)
 -- [[ Setting options ]]
 -- See `:help vim.o`
 -- NOTE: You can change these options as you wish!
+
+-- Set light theme
+vim.o.background = "light"
 
 -- Set highlight on search
 vim.o.hlsearch = false
@@ -449,11 +537,15 @@ end
 --  define the property 'filetypes' to the map in question.
 local servers = {
   -- clangd = {},
-  -- gopls = {},
+  gopls = {},
   -- pyright = {},
-  -- rust_analyzer = {},
-  -- tsserver = {},
-  -- html = { filetypes = { 'html', 'twig', 'hbs'} },
+  rust_analyzer = {
+    lens = {
+      enable = true,
+    }
+  },
+  tsserver = {},
+  html = { filetypes = { 'html', 'twig', 'hbs'} },
 
   lua_ls = {
     Lua = {
@@ -502,8 +594,8 @@ cmp.setup {
     end,
   },
   mapping = cmp.mapping.preset.insert {
-    ['<C-n>'] = cmp.mapping.select_next_item(),
-    ['<C-p>'] = cmp.mapping.select_prev_item(),
+    -- ['<C-n>'] = cmp.mapping.select_next_item(),
+    -- ['<C-p>'] = cmp.mapping.select_prev_item(),
     ['<C-d>'] = cmp.mapping.scroll_docs(-4),
     ['<C-f>'] = cmp.mapping.scroll_docs(4),
     ['<C-Space>'] = cmp.mapping.complete {},
